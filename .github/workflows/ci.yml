@@ -1,0 +1,44 @@
+# cicdbench rehearsal copy (scripts/ops/skipbox-bench-cicd-gen.rb): upstream's workflow with cicdbench's listed changes.
+name: Continuous Integration
+concurrency:
+  group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
+  cancel-in-progress: true
+jobs:
+  build_app:
+    name: Build App
+    runs-on: skipbox-lab
+    timeout-minutes: 30
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+    - uses: "./.github/actions/node-install"
+    - name: Copy env
+      run: cp .env.example .env
+    - name: Build app
+      run: npm run build
+  build_docker:
+    name: Build Docker Image
+    runs-on: skipbox-lab
+    timeout-minutes: 30
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Build Docker Image
+      uses: docker/build-push-action@v5
+      with:
+        push: false
+        context: "."
+        file: "./docker/Dockerfile"
+        tags: documenso-${{ github.sha }}
+'on':
+  pull_request:
+    branches:
+    - main
+env:
+  NODE_OPTIONS: "--max-old-space-size=6144"
